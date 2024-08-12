@@ -1,2 +1,2 @@
 # OAuth-CLI-Tool
-CLI tool design to demonstrate Github OAuth Device Flow
+CLI Tool design to demonstrate Github OAuth Device flow
