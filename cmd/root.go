@@ -5,12 +5,16 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-var rootCmd = &cobra.Command{
-	Use: "Github OAuth Device Flow",
-	Short: "Demonstration of how Github OAuth Device flow works",
-}
+var (
+	cfgFile string
+	rootCmd = &cobra.Command{
+		Use:   "Github OAuth Device Flow",
+		Short: "Demonstration of how Github OAuth Device flow works",
+	}
+)
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
@@ -20,5 +24,22 @@ func Execute() {
 }
 
 func init() {
+	cobra.OnInitialize(initConfig)
+
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "configuration file")
 	rootCmd.AddCommand(ExitCmd)
+}
+
+func initConfig() {
+	if cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
+	} else {
+		viper.SetConfigFile("app.env")
+	}
+
+	viper.AutomaticEnv()
+
+	if err := viper.ReadInConfig(); err == nil {
+		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	}
 }

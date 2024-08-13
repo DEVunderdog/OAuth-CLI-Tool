@@ -45,7 +45,7 @@ func runExit(cmd *cobra.Command, args []string) {
 }
 
 func cleanup(ctx context.Context) {
-	for i := 0; i < 5; i++ {
+	for i := 1; i <= 5; i++ {
 		select {
 		case <-ctx.Done():
 			fmt.Println("Cleanup interrupted")
