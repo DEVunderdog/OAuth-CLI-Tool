@@ -11,9 +11,9 @@ import (
 )
 
 var ExitCmd = &cobra.Command{
-	Use: "exit",
+	Use:   "exit",
 	Short: "Gracefully exit",
-	Run: runExit,
+	Run:   runExit,
 }
 
 func runExit(cmd *cobra.Command, args []string) {
@@ -21,29 +21,27 @@ func runExit(cmd *cobra.Command, args []string) {
 	defer stop()
 
 	go func() {
-		for i := 0; i < 10; i ++ {
+		for i := 0; i < 10; i++ {
 			select {
 			case <-ctx.Done():
 				return
 			default:
-				fmt.Printf("Working...%d\n", i)
 				time.Sleep(1 * time.Second)
 			}
 		}
 	}()
 
+	fmt.Println("Need to exit, press Ctrl + C")
 	<-ctx.Done()
 
 	stop()
-
-	fmt.Println("Exiting gracefully, press Ctrl + C again to force")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	cleanup(shutdownCtx)
 
-	fmt.Println("Bye!!! :)")
+	fmt.Println("\nBye!!! :)")
 }
 
 func cleanup(ctx context.Context) {
@@ -53,7 +51,7 @@ func cleanup(ctx context.Context) {
 			fmt.Println("Cleanup interrupted")
 			return
 		default:
-			fmt.Printf("Cleaning up... %d\n", i)
+			fmt.Printf("\nCleaning up... %d", i)
 			time.Sleep(1 * time.Second)
 		}
 	}
