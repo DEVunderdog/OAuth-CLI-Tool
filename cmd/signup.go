@@ -7,9 +7,12 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"os/exec"
 	"strings"
 	"time"
 
+	"github.com/DEVunderdog/concept_OAuth/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -55,13 +58,12 @@ func runSignup(cmd *cobra.Command, args []string){
 		log.Fatalf("Error reading response: %v", err)
 	}
 
-	fmt.Printf("Response status: %s\n", resp.Status)
-	
 	if strings.HasPrefix(string(body), "device_code=") {
-		fmt.Println("The response appears to be URL-encoded data, not JSON.")
 		parts := strings.Split(string(body), "&")
-		for _, part := range parts {
-			fmt.Println(part)
+		for index, part := range parts {
+			if index == 3 {
+				fmt.Println(part)
+			}
 		}
 	} else {
 		var result map[string]interface{}
@@ -72,5 +74,15 @@ func runSignup(cmd *cobra.Command, args []string){
 			fmt.Println("Parsed JSON response:", result)
 		}
 	}
+
+	browser_provider, url_redirect, err := utils.OpenBrowser("https://github.com/login/device")
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	browser_cmd := exec.Command(*browser_provider, *url_redirect)
+	browser_cmd.Stdout = os.Stdout
+	browser_cmd.Stderr = os.Stderr
+	browser_cmd.Run()
 
 }
