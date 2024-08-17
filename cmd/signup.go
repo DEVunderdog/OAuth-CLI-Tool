@@ -68,10 +68,12 @@ func runSignup(cmd *cobra.Command, args []string) {
 	if strings.HasPrefix(string(body), "device_code=") {
 		parts := strings.Split(string(body), "&")
 		for index, part := range parts {
+			if index == 0 {
+				deviceCode = strings.TrimPrefix(part, "device_code=")
+			}
 			if index == 3 {
-				deviceCode = strings.TrimPrefix(part, "user_code=")
-				fmt.Printf("Device Code: %v", deviceCode)
-				break
+				userCode := strings.TrimPrefix(part, "user_code=")
+				log.Printf("\nUser Code: %v\n", userCode)
 			}
 		}
 	} else {
@@ -90,7 +92,7 @@ func runSignup(cmd *cobra.Command, args []string) {
 	}
 
 	browser_cmd := exec.Command(*browser_provider, *url_redirect)
-	browser_cmd.Stdout = os.Stdout
+	// browser_cmd.Stdout = os.Stdout
 	browser_cmd.Stderr = os.Stderr
 	browser_cmd.Run()
 
@@ -101,7 +103,6 @@ func runSignup(cmd *cobra.Command, args []string) {
 }
 
 func githubAuthServer(ctx context.Context, polling_url string, device_code string, interval, duration time.Duration) error {
-
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -116,15 +117,18 @@ func githubAuthServer(ctx context.Context, polling_url string, device_code strin
 			}
 			return timeoutCtx.Err()
 		case <-ticker.C:
-			err := makeRequest(polling_url, device_code)
+			accessToken, err := makeRequest(polling_url, device_code)
 			if err != nil {
-				fmt.Printf("Error making request: %v\n", err)
+				fmt.Printf("\nError making request: %v\n", err)
+			} else if accessToken != nil {
+				fmt.Println("Access Token received: ", *accessToken)
+				return nil
 			}
 		}
 	}
 }
 
-func makeRequest(url string, device_code string) error {
+func makeRequest(url string, device_code string) (*string, error) {
 	data := map[string]string{
 		"client_id":   viper.GetString("CLIENT_ID"),
 		"device_code": device_code,
@@ -133,42 +137,39 @@ func makeRequest(url string, device_code string) error {
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(url, "application/json", strings.NewReader(string(jsonData)))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var result map[string]interface{}
 	if err := json.Unmarshal(body, &result); err == nil {
 		fmt.Println("Parsed JSON Response: ", result)
 		if accessToken, ok := result["access_token"].(string); ok {
-			fmt.Println("Access Token: ", accessToken)
+			return &accessToken, nil
 		}
-		return nil
 	}
 
 	bodyStr := string(body)
-	print(bodyStr)
 	if strings.Contains(bodyStr, "&") && strings.Contains(bodyStr, "=") {
 		parts := strings.Split(bodyStr, "&")
 		for _, part := range parts {
 			if strings.HasPrefix(part, "access_token") {
 				accessToken := strings.TrimPrefix(part, "access_token=")
-				fmt.Println("Access Token: ", accessToken)
-				return nil
+				return &accessToken, nil
 			}
 		}
 	}
 
-	return nil
+	return nil, nil
 }
